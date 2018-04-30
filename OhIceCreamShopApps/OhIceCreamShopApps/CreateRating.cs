@@ -79,19 +79,9 @@ namespace OhIceCreamShopApps
 
         private static async Task<Rating> CreateRatingAsync(Rating rating)
         {
-            var uri = new Uri("https://ohdrteamdb-001.documents.azure.com:443/");
-            var secret = "";
-            var documentClient = new DocumentClient(uri, secret);
+            var documentClientDetails = await DocumentDbClientFactory.GetDocumentClientAsync();
 
-            var database = new Database() { Id = "IceCreamApp" };
-            var databaseItem = await documentClient.CreateDatabaseIfNotExistsAsync(database);
-            var databaseLink = UriFactory.CreateDatabaseUri(database.Id);
-
-            var documentCollection = new DocumentCollection() { Id = "Ratings" };
-            var documentCollectionItem = await documentClient.CreateDocumentCollectionIfNotExistsAsync(databaseLink, documentCollection);
-            var documentCollectionLink = UriFactory.CreateDocumentCollectionUri(database.Id, documentCollection.Id);
-
-            var document = await documentClient.CreateDocumentAsync(documentCollectionLink, rating);
+            var document = await documentClientDetails.DocumentClient.CreateDocumentAsync(documentClientDetails.RatingsCollectionLink, rating);
 
             return (Rating)((dynamic)document.Resource);
         }

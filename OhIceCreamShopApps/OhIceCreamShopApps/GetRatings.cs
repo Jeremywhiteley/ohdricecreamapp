@@ -32,19 +32,9 @@ namespace OhIceCreamShopApps
 
         private static async Task<IEnumerable<Rating>> GetDocumentsAsync(string userId)
         {
-            var uri = new Uri("https://ohdrteamdb-001.documents.azure.com:443/");
-            var secret = "";
-            var documentClient = new DocumentClient(uri, secret);
+            var documentClientDetails = await DocumentDbClientFactory.GetDocumentClientAsync();
 
-            var database = new Database() { Id = "IceCreamApp" };
-            var databaseItem = await documentClient.CreateDatabaseIfNotExistsAsync(database);
-            var databaseLink = UriFactory.CreateDatabaseUri(database.Id);
-
-            var documentCollection = new DocumentCollection() { Id = "Ratings" };
-            var documentCollectionItem = await documentClient.CreateDocumentCollectionIfNotExistsAsync(databaseLink, documentCollection);
-            var documentCollectionLink = UriFactory.CreateDocumentCollectionUri(database.Id, documentCollection.Id);
-
-            var ratingsQuery = documentClient.CreateDocumentQuery<Rating>(documentCollectionLink)
+            var ratingsQuery = documentClientDetails.DocumentClient.CreateDocumentQuery<Rating>(documentClientDetails.RatingsCollectionLink)
                 .Where(r => r.UserId == userId)
                 .AsDocumentQuery();
 
