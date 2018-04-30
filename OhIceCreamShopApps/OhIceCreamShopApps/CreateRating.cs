@@ -31,6 +31,7 @@ namespace OhIceCreamShopApps
             var rating = JsonConvert.DeserializeObject<Rating>(requestBody);
 
             log.Info($"Create rating request received for product \"{rating.ProductId}\" from user \"{rating.UserId}\".");
+            log.Info($"Testing commit to staging");
 
             var getProductTask = FetchProductAsync(rating.ProductId);
             var getUserTask = FetchUserAsync(rating.UserId);
