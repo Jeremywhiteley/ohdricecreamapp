@@ -1,13 +1,10 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Azure.Documents;
-using Microsoft.Azure.Documents.Client;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.Azure.WebJobs.Host;
 using Newtonsoft.Json;
 using OhIceCreamShopApps.Models;
-using System;
 using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -19,7 +16,7 @@ namespace OhIceCreamShopApps
         private static readonly HttpClient ApiHttpClient = new HttpClient();
 
         [FunctionName("CreateRating")]
-        public static async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Function, "post", Route = null)]HttpRequest req, TraceWriter log)
+        public static async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)]HttpRequest req, TraceWriter log)
         {
             string requestBody;
 
@@ -80,19 +77,9 @@ namespace OhIceCreamShopApps
 
         private static async Task<Rating> CreateRatingAsync(Rating rating)
         {
-            var uri = new Uri("https://ohdrteamdb-001.documents.azure.com:443/");
-            var secret = "";
-            var documentClient = new DocumentClient(uri, secret);
+            var documentClientDetails = await DocumentDbClientFactory.GetDocumentClientAsync();
 
-            var database = new Database() { Id = "IceCreamApp" };
-            var databaseItem = await documentClient.CreateDatabaseIfNotExistsAsync(database);
-            var databaseLink = UriFactory.CreateDatabaseUri(database.Id);
-
-            var documentCollection = new DocumentCollection() { Id = "Ratings" };
-            var documentCollectionItem = await documentClient.CreateDocumentCollectionIfNotExistsAsync(databaseLink, documentCollection);
-            var documentCollectionLink = UriFactory.CreateDocumentCollectionUri(database.Id, documentCollection.Id);
-
-            var document = await documentClient.CreateDocumentAsync(documentCollectionLink, rating);
+            var document = await documentClientDetails.DocumentClient.CreateDocumentAsync(documentClientDetails.RatingsCollectionLink, rating);
 
             return (Rating)((dynamic)document.Resource);
         }
