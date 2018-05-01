@@ -25,7 +25,7 @@ namespace BatchFileHandling
         public string Url { get; set; }
         [JsonProperty("sequencer")]
         public string Sequencer { get; set; }
-        [JsonProperty("storageDiagnostics")]
-        public StorageDiagnostics StorageDiagnostics { get; set; }
+        //[JsonProperty("storageDiagnostics")]
+        //public StorageDiagnostics StorageDiagnostics { get; set; }
     }
 }

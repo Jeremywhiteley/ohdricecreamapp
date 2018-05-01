@@ -11,74 +11,134 @@ using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using Newtonsoft.Json.Linq;
 
 namespace BatchFileHandling
 {
     public static class BatchProcessing
     {
         [FunctionName("BatchProcessing")]
-        public static async Task<IActionResult> RunAsync([HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = null)]HttpRequest req, TraceWriter log)
+        public static async Task<IActionResult> RunAsync([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)]HttpRequest req, TraceWriter log)
         {
-            log.Info("C# HTTP trigger function processed a request.");
+            var nextFileUrl = await ParseNextFileUrlFromRequest(req);
 
-            //StorageItem eventData = JsonConvert.DeserializeObject<EventGridEvent>(req);
-            using (StreamReader sr = new StreamReader(req.Body))
+            log.Info($"Received blob path of: {nextFileUrl}");
+
+            string dateId = ParseDateIdFromFileUrl(nextFileUrl);
+
+            var cloudBlobClient = GetCloudBlobClient();
+
+            const string containerReference = "blob-lock";
+
+            var cloudBlobContainer = cloudBlobClient.GetContainerReference(containerReference);
+            await cloudBlobContainer.CreateIfNotExistsAsync();
+
+            var fileName = $"lock-{dateId}-txt";
+            var blob = cloudBlobContainer.GetBlockBlobReference(fileName);
+            if (!await blob.ExistsAsync())
             {
-                var blobURL = await sr.ReadToEndAsync();
-                var containerReference = "blobLock";
+                await blob.UploadTextAsync("");
+            }
 
-                string storageConnectionString = Environment.GetEnvironmentVariable("storageconnectionstring");
+            var fileUrls = new List<string>();
 
-                CloudStorageAccount storageAccount;
-
-                // Check whether the connection string can be parsed.
-                if (CloudStorageAccount.TryParse(storageConnectionString, out storageAccount))
+            var blobLeaseId = await blob.AcquireLeaseAsync(TimeSpan.FromSeconds(60));
+            AccessCondition accessCondition = new AccessCondition() { LeaseId = blobLeaseId };
+            BlobRequestOptions options = new BlobRequestOptions();
+            OperationContext operationContext = new OperationContext();
+            try
+            {
+                try
                 {
-                    // If the connection string is valid, proceed with operations against Blob storage here.
-
-                    // Create the CloudBlobClient that represents the Blob storage endpoint for the storage account.
-                    CloudBlobClient cloudBlobClient = storageAccount.CreateCloudBlobClient();
-
-                    CloudBlobContainer cloudBlobContainer = cloudBlobClient.GetContainerReference(containerReference);
-                    CloudBlob blob = cloudBlobContainer.GetBlobReference(blobURL);
-
+                    using (var reader = new StreamReader(await blob.OpenReadAsync()))
                     {
-                        using (StreamReader reader = new StreamReader(await blob.OpenReadAsync()))
+                        string fileUrl;
+
+                        while ((fileUrl = await reader.ReadLineAsync()) != null)
                         {
-                            var files = new List<string>();
-                            int countLines = 0;
-                            var line = String.Empty;
-                            while ((line = await reader.ReadLineAsync()) != null)
+                            if (!String.IsNullOrWhiteSpace(fileUrl))
                             {
-                                if (!String.IsNullOrWhiteSpace(line))
-                                {
-                                    countLines++;
-                                    files.Add(line);
-                                }
-                                if (countLines==3)
-                                {
-                                    return new OkObjectResult(files);
-                                }
+                                fileUrls.Add(fileUrl);
                             }
                         }
-                        using (StreamWriter write = new StreamWriter(await ))
                     }
                 }
-                else
+                catch (StorageException storageException) when (storageException.RequestInformation.HttpStatusCode == 404)
                 {
-                    // Otherwise, let the user know that they need to define the environment variable.
-                    Console.WriteLine(
-                        "A connection string has not been defined in the system environment variables. " +
-                        "Add a environment variable named 'storageconnectionstring' with your storage " +
-                        "connection string as a value.");
-                    Console.WriteLine("Press any key to exit the sample application.");
-                    Console.ReadLine();
+                    log.Warning($"Blob for {dateId} did not exist yet...");
                 }
 
-                return new OkObjectResult(202);
-                //    : new BadRequestObjectResult("Please pass a name on the query string or in the request body");
+                log.Info($"Blob contained {fileUrls.Count} file urls already...");
+
+                fileUrls.Add(nextFileUrl);
+
+                using (var writer = new StreamWriter(await blob.OpenWriteAsync(accessCondition, options, operationContext)))
+                {
+                    foreach (string fileUrl in fileUrls)
+                    {
+                        await writer.WriteLineAsync(fileUrl);
+                    }
+                }
+
+                if (fileUrls.Count < 3)
+                {
+                    log.Info($"Only {fileUrls.Count} so far, returning accepted.");
+
+                    return new AcceptedResult();
+                }
+
+                log.Info($"We hae {fileUrls.Count} files, returning them to caller!");
+
+
+                return new OkObjectResult(fileUrls);
+            }
+            finally
+            {
+                log.Info($"Releasing lease \"{blobLeaseId}\" on blob {blob.Name}...");
+
+                await blob.ReleaseLeaseAsync(new AccessCondition { LeaseId = blobLeaseId });
+
+                log.Info($"Lease \"{blobLeaseId}\" on blob {blob.Name} released!");
+
             }
         }
 
+        private static CloudBlobClient GetCloudBlobClient()
+        {
+            string storageConnectionString = Environment.GetEnvironmentVariable("storageconnectionstring");
+
+
+            // Check whether the connection string can be parsed.
+            if (!CloudStorageAccount.TryParse(storageConnectionString, out var storageAccount))
+            {
+                throw new Exception("No connection string configured for blob storage");
+            }
+            // If the connection string is valid, proceed with operations against Blob storage here.
+
+            // Create the CloudBlobClient that represents the Blob storage endpoint for the storage account.
+            return storageAccount.CreateCloudBlobClient();
+        }
+
+        private static async Task<string> ParseNextFileUrlFromRequest(HttpRequest req)
+        {
+            string nextFileUrl;
+
+            using (var jsonReader = new JsonTextReader(new StreamReader(req.Body)))
+            {
+                var input = await JObject.ReadFromAsync(jsonReader);
+
+                nextFileUrl = input["blobPath"].Value<string>();
+            }
+
+            return nextFileUrl;
+        }
+		
+
+        private static string ParseDateIdFromFileUrl(string nextFileUrl)
+        {
+            Uri fileUri = new Uri(nextFileUrl);
+            var dateId = fileUri.Segments[2].Split('-');
+            return dateId[0];
+        }
     }
 }
