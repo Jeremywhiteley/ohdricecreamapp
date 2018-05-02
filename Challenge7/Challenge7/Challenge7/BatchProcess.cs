@@ -18,7 +18,7 @@ namespace Challenge7
             var databaseResponse = documentClient.CreateDatabaseIfNotExistsAsync(new Database() { Id = "Challenge7DB" }).Result;
             var database = databaseResponse.Resource as Database;
             var databaseLink = UriFactory.CreateDatabaseUri(database.Id);
-            var documentCollectionResponse = documentClient.CreateDocumentCollectionIfNotExistsAsync(databaseLink, new DocumentCollection() { Id = "OrderHeaderDetails" }).Result;
+            var documentCollectionResponse = documentClient.CreateDocumentCollectionIfNotExistsAsync(databaseLink, new DocumentCollection() { Id = "Challenge7Orders" }).Result;
             var documentCollection = documentCollectionResponse.Resource as DocumentCollection;
             var documentCollectionLink = UriFactory.CreateDocumentCollectionUri(database.Id, documentCollection.Id);
 
