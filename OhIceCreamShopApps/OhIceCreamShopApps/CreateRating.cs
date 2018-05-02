@@ -147,9 +147,9 @@ namespace OhIceCreamShopApps
 
         private static async Task<Rating> CreateRatingAsync(Rating rating)
         {
-            var documentClientDetails = await DocumentDbClientFactory.GetDocumentClientAsync();
+            var documentClientDetails = await DocumentDbClientFactory.GetRatingsClientAsync();
 
-            var document = await documentClientDetails.DocumentClient.CreateDocumentAsync(documentClientDetails.RatingsCollectionLink, rating);
+            var document = await documentClientDetails.DocumentClient.CreateDocumentAsync(documentClientDetails.DocumentCollectionLink, rating);
 
             return (Rating)((dynamic)document.Resource);
         }

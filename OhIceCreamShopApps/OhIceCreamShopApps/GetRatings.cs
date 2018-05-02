@@ -30,9 +30,9 @@ namespace OhIceCreamShopApps
 
         private static async Task<IEnumerable<Rating>> GetDocumentsAsync(string userId)
         {
-            var documentClientDetails = await DocumentDbClientFactory.GetDocumentClientAsync();
+            var documentClientDetails = await DocumentDbClientFactory.GetRatingsClientAsync();
 
-            var ratingsQuery = documentClientDetails.DocumentClient.CreateDocumentQuery<Rating>(documentClientDetails.RatingsCollectionLink)
+            var ratingsQuery = documentClientDetails.DocumentClient.CreateDocumentQuery<Rating>(documentClientDetails.DocumentCollectionLink)
                 .Where(r => r.UserId == userId)
                 .AsDocumentQuery();
 

@@ -28,7 +28,7 @@ namespace OhIceCreamShopApps
 
         private static async Task<Rating> GetDocumentAsync(string ratingId)
         {
-            var documentClientDetails = await DocumentDbClientFactory.GetDocumentClientAsync();
+            var documentClientDetails = await DocumentDbClientFactory.GetRatingsClientAsync();
             var docUri = UriFactory.CreateDocumentUri("IceCreamApp", "Ratings", ratingId);
 
             return await documentClientDetails.DocumentClient.ReadDocumentAsync<Rating>(docUri);
