@@ -2,6 +2,7 @@
 using Microsoft.Azure.Documents;
 using Microsoft.Azure.Documents.Client;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -18,20 +19,20 @@ namespace OhIceCreamShopApps
 
     public static class DocumentDbClientFactory
     {
-        private static object ResolveDocumentClientItemLock = new object();
-        private static Dictionary<string, DocumentClientDetails> ResolvedDocumentClientItem = new Dictionary<string, DocumentClientDetails>();
+        private static ConcurrentDictionary<string, DocumentClientDetails> ResolvedDocumentClientDetails = new ConcurrentDictionary<string, DocumentClientDetails>();
 
         public static async ValueTask<DocumentClientDetails> GetDocumentClientAsync(string databaseName, string collectionName)
         {
-            if (ResolvedDocumentClientItem.ContainsKey(collectionName))
+            if (ResolvedDocumentClientDetails.TryGetValue(collectionName, out var documentClientDetails))
             {
-                return ResolvedDocumentClientItem[collectionName];
+                return documentClientDetails;
             }
 
-            // TODO: technically there can still be a race here if two threads come in at the same time, but we can sort that out later
-            ResolvedDocumentClientItem.Add(collectionName, await InitializeDocumentClientAsync(databaseName, collectionName));
+            documentClientDetails = await InitializeDocumentClientAsync(databaseName, collectionName);
 
-            return ResolvedDocumentClientItem[collectionName];
+            ResolvedDocumentClientDetails.TryAdd(collectionName, documentClientDetails);
+
+            return documentClientDetails;
         }
 
         private static async Task<DocumentClientDetails> InitializeDocumentClientAsync(string databaseName, string collectionName)
@@ -56,9 +57,6 @@ namespace OhIceCreamShopApps
             };
         }
 
-        public static async ValueTask<DocumentClientDetails> GetRatingsClientAsync()
-        {
-            return await GetDocumentClientAsync("IceCreamApp", "Ratings");
-        }
+        public static ValueTask<DocumentClientDetails> GetRatingsClientAsync() => GetDocumentClientAsync("IceCreamApp", "Ratings");
     }
 }
