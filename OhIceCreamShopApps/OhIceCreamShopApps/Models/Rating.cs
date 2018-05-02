@@ -21,6 +21,9 @@ namespace OhIceCreamShopApps.Models
 
         [JsonProperty("usernotes")]
         public string UserNotes { get; set; }
+
+        [JsonProperty("sentimentscore")]
+        public float SentimentScore { get; set; }
     }
 
     public class ProductInfo
