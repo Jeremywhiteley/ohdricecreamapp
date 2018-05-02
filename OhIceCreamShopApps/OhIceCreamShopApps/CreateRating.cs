@@ -61,7 +61,7 @@ namespace OhIceCreamShopApps
             ITextAnalyticsAPI client = new TextAnalyticsAPI
             {
                 AzureRegion = AzureRegions.Westus,
-                SubscriptionKey = "0222d5a8eed04f68847c1e61a53ed791"
+                SubscriptionKey = Environment.GetEnvironmentVariable("COGNITIVE_SERVICES_KEY")
             };
 
             SentimentBatchResult result = client.Sentiment(
