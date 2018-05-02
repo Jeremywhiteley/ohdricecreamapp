@@ -20,6 +20,13 @@ namespace OhIceCreamShopApps.Models
         public float TotalSentimentScore { get; set; }
 
         [JsonProperty("averageSentimentScore")]
-        public float AverageSentimentScore { get { return TotalSentimentScore / TotalRatings; } }
+        public float AverageSentimentScore
+        {
+            get
+            {
+                if (TotalRatings == 0) return 0;
+                return TotalSentimentScore / TotalRatings;
+            }
+        }
     }
 }
