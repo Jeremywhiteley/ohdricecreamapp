@@ -4,7 +4,9 @@ using Microsoft.Azure.EventHubs;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Host;
 using Microsoft.Azure.WebJobs.ServiceBus;
+using Newtonsoft.Json;
 using System;
+using System.Text;
 
 namespace Challenge7
 {
@@ -25,11 +27,16 @@ namespace Challenge7
             // process messages
             foreach (EventData message in myEventHubMessages)
             {
-                // process each message
+                string messagePaylog = Encoding.UTF8.GetString(message.Body.Array);
+                if (!messagePaylog.StartsWith("Message"))
+                {
+                    // process each message
+                    var myEvent = JsonConvert.DeserializeObject(messagePaylog);
 
-
-                // write to DocDB
-                documentClient.CreateDocumentAsync(documentCollectionLink, message).Wait();
+                    // write to DocDB
+                    documentClient.CreateDocumentAsync(documentCollectionLink, myEvent).Wait();
+                }
+                
             }
 
         }
