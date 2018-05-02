@@ -87,7 +87,7 @@ namespace BatchFileHandling
                     return new AcceptedResult();
                 }
 
-                log.Info($"We hae {fileUrls.Count} files, returning them to caller!");
+                log.Info($"We have {fileUrls.Count} files, returning them to caller!");
 
 
                 return new OkObjectResult(fileUrls);
