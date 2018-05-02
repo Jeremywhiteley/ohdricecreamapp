@@ -1,3 +1,6 @@
+using Microsoft.ApplicationInsights;
+using Microsoft.ApplicationInsights.DataContracts;
+using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.CognitiveServices.Language.TextAnalytics;
@@ -20,7 +23,9 @@ namespace OhIceCreamShopApps
         private static readonly HttpClient ApiHttpClient = new HttpClient();
 
         [FunctionName("CreateRating")]
-        public static async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)]HttpRequest req, TraceWriter log)
+        public static async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)]HttpRequest req,
+            ExecutionContext context,
+            TraceWriter log)
         {
             string requestBody;
 
@@ -34,6 +39,11 @@ namespace OhIceCreamShopApps
             log.Info($"Create rating request received for product \"{rating.ProductId}\" from user \"{rating.UserId}\".");
 
             rating = GetSentimentAnalysis(log, rating);
+
+            if (rating.SentimentScore < 0.3)
+            {
+                TrackTelemetry(context, rating);
+            }
 
             var getProductTask = FetchProductAsync(rating.ProductId);
             var getUserTask = FetchUserAsync(rating.UserId);
@@ -54,6 +64,31 @@ namespace OhIceCreamShopApps
             return new BadRequestObjectResult($"User {rating.UserId} and Product {rating.ProductId} not found.");
         }
 
+        private static void TrackTelemetry(ExecutionContext context, Rating rating)
+        {
+            // Create Telemetry for Sentiment Monioring
+            string key = TelemetryConfiguration.Active.InstrumentationKey =
+            System.Environment.GetEnvironmentVariable(
+                "APPINSIGHTS_INSTRUMENTATIONKEY", EnvironmentVariableTarget.Process);
+
+            TelemetryClient telemetryClient =
+                new TelemetryClient() { InstrumentationKey = key };
+
+            // Track an Event
+            var evt = new EventTelemetry("BadSentiment");
+            UpdateTelemetryContext(evt.Context, context, rating.UserId, rating.SentimentScore);
+            telemetryClient.TrackEvent(evt);
+        }
+
+        private static void UpdateTelemetryContext(TelemetryContext context, ExecutionContext functionContext, string userName, float sentimentScore)
+        {
+            context.Operation.Id = functionContext.InvocationId.ToString();
+            context.Operation.ParentId = functionContext.InvocationId.ToString();
+            context.Operation.Name = functionContext.FunctionName;
+            context.User.Id = userName;
+            context.Properties["sentimentScore"] = sentimentScore.ToString();
+        }
+
         private static Rating GetSentimentAnalysis(TraceWriter log, Rating rating)
         {
             // Handle sentiment analysis for usernotes
@@ -64,11 +99,13 @@ namespace OhIceCreamShopApps
                 SubscriptionKey = Environment.GetEnvironmentVariable("COGNITIVE_SERVICES_KEY")
             };
 
+            Guid sentimentId = Guid.NewGuid();
+
             SentimentBatchResult result = client.Sentiment(
                     new MultiLanguageBatchInput(
                         new List<MultiLanguageInput>()
                         {
-                          new MultiLanguageInput("en", "0" , rating.UserNotes),
+                          new MultiLanguageInput("en", sentimentId.ToString() , rating.UserNotes),
                         }));
 
 
