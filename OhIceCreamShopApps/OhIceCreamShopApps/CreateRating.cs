@@ -22,6 +22,14 @@ namespace OhIceCreamShopApps
     {
         private static readonly HttpClient ApiHttpClient = new HttpClient();
 
+        // Create Telemetry for Sentiment Monioring
+        static string key = TelemetryConfiguration.Active.InstrumentationKey =
+        System.Environment.GetEnvironmentVariable(
+            "APPINSIGHTS_INSTRUMENTATIONKEY", EnvironmentVariableTarget.Process);
+
+        public static TelemetryClient telemetryClient =
+            new TelemetryClient() { InstrumentationKey = key };
+
         [FunctionName("CreateRating")]
         public static async Task<IActionResult> Run([HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)]HttpRequest req,
             ExecutionContext context,
@@ -66,13 +74,7 @@ namespace OhIceCreamShopApps
 
         private static void TrackTelemetry(ExecutionContext context, Rating rating)
         {
-            // Create Telemetry for Sentiment Monioring
-            string key = TelemetryConfiguration.Active.InstrumentationKey =
-            System.Environment.GetEnvironmentVariable(
-                "APPINSIGHTS_INSTRUMENTATIONKEY", EnvironmentVariableTarget.Process);
-
-            TelemetryClient telemetryClient =
-                new TelemetryClient() { InstrumentationKey = key };
+            
 
             // Track an Event
             var evt = new EventTelemetry("BadSentiment");
