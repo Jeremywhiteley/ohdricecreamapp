@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27428.2011
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CreatePODoc", "CreatePODoc\CreatePODoc.csproj", "{FAF74842-FCDE-4F1F-93D6-19F95E89765D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{FAF74842-FCDE-4F1F-93D6-19F95E89765D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FAF74842-FCDE-4F1F-93D6-19F95E89765D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FAF74842-FCDE-4F1F-93D6-19F95E89765D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FAF74842-FCDE-4F1F-93D6-19F95E89765D}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {A4BD71AA-9D69-4D91-B4BE-6409B1B3A594}
+	EndGlobalSection
+EndGlobal
