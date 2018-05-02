@@ -1,0 +1,4 @@
+requests 
+| summarize count() by cloud_RoleInstance, bin(timestamp, 1m)
+| summarize count() by bin(timestamp, 1m)
+| render timechart 
